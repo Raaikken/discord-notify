@@ -119,6 +119,9 @@ void logLocal(string msg) {
 	struct tm *aTime = localtime(&theTime);
 	cout << "[" << aTime->tm_hour << ":" << aTime->tm_min << ":" << aTime->tm_sec << "] " << msg << endl;
 }
+void callback(const confirmation_callback_t msgErr){
+	cout << msgErr.get_error().message << endl;
+}
 int main(){
 	logLocal("Hello, World!");
 
@@ -130,8 +133,8 @@ int main(){
 	});
 
 	bot.on_message_create([&bot](const message_create_t & event) {
-		if(event.msg->content == "~ping") {
-			bot.message_create(message(event.msg->channel_id, "Pong!"));
+		if(event.msg.content == "~ping") {
+			bot.message_create(message(event.msg.channel_id, "Pong!"));
 		}
 	});
 
@@ -142,11 +145,14 @@ int main(){
 		if(getStreamStatus() == StreamStatus::Live && previousStreamStatus == StreamStatus::Offline) {
 			logLocal("Stream has gone live.");
 			notificationMessage = sendNotification(bot);
+			cout << "Notification MSG Info\nID: " << notificationMessage.id << "\nChannel: " << notificationMessage.channel_id << endl;
 			previousStreamStatus = StreamStatus::Live;
 		}
 		else if(getStreamStatus() == StreamStatus::Offline && previousStreamStatus == StreamStatus::Live) {
 			logLocal("Stream has gone offline.");
-			bot.message_delete(notificationMessage.id, notificationMessage.channel_id);
+			bot.message_delete(notificationMessage.id, notificationMessage.channel_id, callback);
+			sleep(10);
+			break;
 		}
 		else{
 			logLocal("Stream status has not changed.");

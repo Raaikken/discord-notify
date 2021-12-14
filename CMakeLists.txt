@@ -18,7 +18,6 @@ FetchContent_MakeAvailable(DPP nlohmann_json)
 # Create an executable
 add_executable(${PROJECT_NAME}
     src/main.cpp
-    # your others files...
 )
 
 # Linking libraries
@@ -29,8 +28,8 @@ target_link_libraries(${PROJECT_NAME}
 
 # Specify includes
 target_include_directories(${PROJECT_NAME} PRIVATE
-    libs/DPP/include
-    libs/json/include
+    ${dpp_SOURCE_DIR}/include
+    ${nlohmann_json_SOURCE_DIR}/include
 )
 
 # Set C++ version
