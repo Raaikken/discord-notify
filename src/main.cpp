@@ -1,9 +1,13 @@
 #include <cstdio>
+#include <cstdlib>
 #include <iostream>
 #include <memory>
 #include <stdexcept>
 #include <string>
 #include <array>
+#include <time.h>
+#include "dpp/intents.h"
+#include "unistd.h"
 
 #include "dpp/dpp.h"
 #include "nlohmann/json.hpp"
@@ -87,7 +91,7 @@ StreamStatus getStreamStatus() {
 void constructMessage(string& msg) {
 	logLocal("Consturcting the message.");
 	msg = "";
-	msg += "@here \n";
+	msg += "@everyone \n";
 	msg += "🤖 ";
 	// Generate Beeps and Boops
 	srand(time(NULL));
@@ -126,8 +130,9 @@ int main(){
 	logLocal("Hello, World!");
 
 	cluster bot(getenv("DISCORD_TOKEN"));
-	message notificationMessage;
 
+	message notificationMessage;
+	
 	bot.on_ready([&bot](const ready_t & event) {
 		logLocal(("Logged in as %s", bot.me.username));
 	});
@@ -140,24 +145,37 @@ int main(){
 
 	bot.start(true);
 
+	int secondsTillMinute = 0;
+
 	while(true) {
-		logLocal("Fetching stream status...");
-		if(getStreamStatus() == StreamStatus::Live && previousStreamStatus == StreamStatus::Offline) {
-			logLocal("Stream has gone live.");
-			notificationMessage = sendNotification(bot);
-			cout << "Notification MSG Info\nID: " << notificationMessage.id << "\nChannel: " << notificationMessage.channel_id << endl;
-			previousStreamStatus = StreamStatus::Live;
+		secondsTillMinute = 60 - (time(NULL) % 60);
+
+		cout << secondsTillMinute << endl;
+
+		if(secondsTillMinute == 60) {
+			logLocal("Fetching stream status...");
+			if(getStreamStatus() == StreamStatus::Live && previousStreamStatus == StreamStatus::Offline) {
+				logLocal("Stream has gone live.");
+				notificationMessage = sendNotification(bot);
+				cout << "Notification MSG Info\nID: " << notificationMessage.id << "\nChannel: " << notificationMessage.channel_id << endl;
+				previousStreamStatus = StreamStatus::Live;
+			}
+			else if(getStreamStatus() == StreamStatus::Offline && previousStreamStatus == StreamStatus::Live) {
+				logLocal("Stream has gone offline.");
+				bot.message_delete(notificationMessage.id, notificationMessage.channel_id, callback);
+				sleep(10);
+				break;
+			}
+			else{
+				logLocal("Stream status has not changed.");
+			}
 		}
-		else if(getStreamStatus() == StreamStatus::Offline && previousStreamStatus == StreamStatus::Live) {
-			logLocal("Stream has gone offline.");
-			bot.message_delete(notificationMessage.id, notificationMessage.channel_id, callback);
-			sleep(10);
-			break;
+		else if(secondsTillMinute <= 5) {
+			sleep(1);
 		}
-		else{
-			logLocal("Stream status has not changed.");
+		else {
+			sleep(secondsTillMinute - 5);
 		}
-		sleep(60);
 	}
 
 	return 0;
